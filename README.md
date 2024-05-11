@@ -23,7 +23,7 @@ Cloudinary File Storage: Files shared within the chat application are stored in 
 
 | Section                 | Description                                  |
 |-------------------------|----------------------------------------------|
-| [Installation](#installation-)        |  Install Dependencies   
+| [Installation](#installation)        |  Install Dependencies   
 | [Usage](#usage-)        | 📚 how to run the Project 
 | [Contributing](#contributing-)        |  about contributing in this project            |  
 | [License](#license-)        |  About license            |         |         |
