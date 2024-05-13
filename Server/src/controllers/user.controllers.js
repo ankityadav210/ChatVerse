@@ -2,6 +2,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req, res) => {
   // algorithm  for register a new user
@@ -18,7 +19,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // validation the input data
   console.log(req.body);
-  
+
   if (!userName || !password || !bio || !name) {
     throw new ApiError(404, "all input data is required");
   }
@@ -31,7 +32,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // check the user its existing or new
 
-  const existingUser = await User.find({ username: req.body.username });
+  const existingUser = await User.findOne({ username: req.body.username });
 
   if (!existingUser) {
     throw new ApiError(404, "this user is already exist");
@@ -51,11 +52,36 @@ const registerUser = asyncHandler(async (req, res) => {
       "something went wrong while registering the new user"
     );
   }
-   // send back the response with status code
+  // send back the response with status code
   console.log(newUser);
   return res
     .status(200)
-    .json(new ApiResponse(202, "user is registered successfully",newUser));
+    .json(new ApiResponse(202, "user is registered successfully", newUser));
 });
 
-export { registerUser };
+// login controller
+const loggedInUser = asyncHandler(async (req, res) => {
+  const { userName, password } = req.body;
+
+  // validation
+  if (!userName || !password) {
+    throw new ApiError(402, "all input fields are required");
+  }
+
+  // check the user existing or not
+  const user = await User.findOne({ userName: req.body.userName });
+
+  if (!user) {
+    throw new ApiError(404, "existing user not found so register the user");
+  }
+
+  // check the password correct or not
+  const passwordRight = await user.isPasswordCorrect(password);
+  if (!passwordRight) {
+    throw new ApiError(403, "password is not correct");
+  }
+
+  // generate the token
+  const token = jwt.sign();
+});
+export { registerUser, loggedInUser };
