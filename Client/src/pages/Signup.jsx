@@ -1,6 +1,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TbEyeFilled } from "react-icons/tb";
 
 import {
   Card,
@@ -11,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRef, useState } from "react";
+import { useInputValidation, useStrongPassword } from "6pp";
+import { usernameValidator } from "@/helpers/validators";
 
 const Signup = () => {
   const fileInputRef = useRef(null);
@@ -24,9 +27,19 @@ const Signup = () => {
     const file = e.target.files[0];
     setSelectedImage(URL.createObjectURL(file));
   };
+
+  const name = useInputValidation("");
+  const username = useInputValidation("", usernameValidator);
+  const bio = useInputValidation("");
+  const password = useStrongPassword();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
+
   return (
     <div className="h-screen flex items-center justify-center">
-      <form>
+      <form onSubmit={handleSubmit}>
         <Card className="w-[350px]">
           <CardContent>
             <div className="grid w-full items-center gap-4">
@@ -52,34 +65,61 @@ const Signup = () => {
               </CardHeader>
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Enter your name..." />
+                <Input
+                  id="name"
+                  placeholder="Enter your name..."
+                  value={name.value}
+                  onChange={name.changeHandler}
+                />
               </div>
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="Enter your username..." />
+                <Input
+                  id="username"
+                  placeholder="Enter your username..."
+                  value={username.value}
+                  onChange={username.changeHandler}
+                />
               </div>
+              {username.error && username.value && (
+                <div className="text-red-500 text-sm">{username.error}</div>
+              )}
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   type="password"
                   id="password"
                   placeholder="Enter your password..."
+                  value={password.value}
+                  onChange={password.changeHandler}
                 />
               </div>
+              {password.error && password.value && (
+                <div className="text-red-500 text-sm">{password.error}</div>
+              )}
+
               <div>
-                <Label htmlFor="bio">Password</Label>
+                <Label htmlFor="bio">Bio</Label>
                 <Textarea
                   id="bio"
                   placeholder="Enter your bio..."
                   className="resize-none"
+                  value={bio.value}
+                  onChange={bio.changeHandler}
                 />
               </div>
             </div>
           </CardContent>
           <CardFooter className={"flex justify-center"}>
-            <Button type="submit" className={"flex justify-center"}>
-              SignUp
-            </Button>
+            {!password.value || !username.value || !name.value || !bio.value ? (
+              <Button disabled type="submit" className={"flex justify-center"}>
+                SignUp
+              </Button>
+            ) : (
+              <Button type="submit" className={"flex justify-center"}>
+                SignUp
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </form>

@@ -1,3 +1,4 @@
+import { useInputValidation } from "6pp";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,10 +9,17 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { usernameValidator } from "@/helpers/validators";
 
 import * as React from "react";
 
 const Login = () => {
+  const username = useInputValidation("", usernameValidator);
+  const password = useInputValidation();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
   // const [isLoading, setIsLoading] = useState(false);
 
   // const handleLogin = async (e) => {
@@ -50,7 +58,7 @@ const Login = () => {
 
   return (
     <div className="h-screen flex items-center justify-center">
-      <form>
+      <form onSubmit={handleSubmit}>
         <Card className="w-[350px]">
           <CardHeader>
             <CardTitle className={"flex justify-center"}>CHAT-VERSE</CardTitle>
@@ -63,6 +71,8 @@ const Login = () => {
                   id="username"
                   type={"text"}
                   placeholder="Enter your username..."
+                  value={username.value}
+                  onChange={username.changeHandler}
                 />
               </div>
               <div className="flex flex-col space-y-1.5">
@@ -71,14 +81,22 @@ const Login = () => {
                   id="password"
                   type={"password"}
                   placeholder="Enter your password..."
+                  value={password.value}
+                  onChange={password.changeHandler}
                 />
               </div>
             </div>
           </CardContent>
           <CardFooter className={"flex justify-center"}>
-            <Button type="submit" className={"flex justify-center"}>
-              Login
-            </Button>
+            {!username.value || !password.value ? (
+              <Button disabled type="submit" className={"flex justify-center"}>
+                Login
+              </Button>
+            ) : (
+              <Button type="submit" className={"flex justify-center"}>
+                Login
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </form>
