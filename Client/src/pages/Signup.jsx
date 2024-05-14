@@ -14,8 +14,10 @@ import { Label } from "@/components/ui/label";
 import { useRef, useState } from "react";
 import { useInputValidation, useStrongPassword } from "6pp";
 import { usernameValidator } from "@/helpers/validators";
+import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -35,6 +37,10 @@ const Signup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+  };
+
+  const redirectButton = () => {
+    navigate("/login");
   };
 
   return (
@@ -111,8 +117,17 @@ const Signup = () => {
             </div>
           </CardContent>
           <CardFooter className={"flex justify-center"}>
-            {!password.value || !username.value || !name.value || !bio.value ? (
-              <Button disabled type="submit" className={"flex justify-center"}>
+            {!password.value ||
+            !username.value ||
+            !name.value ||
+            !bio.value ||
+            password.error ||
+            username.error ? (
+              <Button
+                disabled
+                type="submit"
+                className={"flex justify-center w-40"}
+              >
                 SignUp
               </Button>
             ) : (
@@ -120,6 +135,15 @@ const Signup = () => {
                 SignUp
               </Button>
             )}
+          </CardFooter>
+          <CardFooter className={"flex justify-center"}>
+            <Button
+              variant={"outline"}
+              onClick={redirectButton}
+              className={"flex justify-center"}
+            >
+              If Already SignedUp
+            </Button>
           </CardFooter>
         </Card>
       </form>

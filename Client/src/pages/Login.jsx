@@ -12,13 +12,20 @@ import { Label } from "@/components/ui/label";
 import { usernameValidator } from "@/helpers/validators";
 
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const username = useInputValidation("", usernameValidator);
   const password = useInputValidation();
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+  };
+
+  const redirectButton = () => {
+    navigate("/signup");
   };
   // const [isLoading, setIsLoading] = useState(false);
 
@@ -89,14 +96,27 @@ const Login = () => {
           </CardContent>
           <CardFooter className={"flex justify-center"}>
             {!username.value || !password.value ? (
-              <Button disabled type="submit" className={"flex justify-center"}>
+              <Button
+                disabled
+                type="submit"
+                className={"flex justify-center w-32"}
+              >
                 Login
               </Button>
             ) : (
-              <Button type="submit" className={"flex justify-center"}>
+              <Button type="submit" className={"flex justify-center w-32"}>
                 Login
               </Button>
             )}
+          </CardFooter>
+          <CardFooter className={"flex justify-center"}>
+            <Button
+              variant="outline"
+              onClick={redirectButton}
+              className={"flex justify-center"}
+            >
+              Sign Up Instead
+            </Button>
           </CardFooter>
         </Card>
       </form>
