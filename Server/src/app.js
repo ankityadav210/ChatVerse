@@ -1,3 +1,4 @@
+import chatRoute from "./routes/chat.routes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -24,5 +25,8 @@ app.use(cookieParser());
 // user route
 
 app.use("/api/v1/users", userRoute);
+
+// chat route
+app.use("/api/v1/chats", chatRoute);
 
 export { app };

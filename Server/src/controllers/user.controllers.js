@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   // algorithm  for register a new user
@@ -18,8 +19,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const { userName, password, bio, name } = req.body;
 
   // validation the input data
-  console.log(req.body);
-
+  // console.log(req.body);
   if (!userName || !password || !bio || !name) {
     throw new ApiError(404, "all input data is required");
   }
@@ -28,7 +28,19 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "all fields are must be required");
   }
 
-  // check avatar is uploaded or not
+  // console.log(req.file);
+  // upload the avatar file in the cloudinary
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(404, "local path for avatar not found");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar) {
+    throw new ApiError(401, "avatar is not uploaded");
+  }
+  console.log(avatar);
 
   // check the user its existing or new
 
@@ -40,23 +52,32 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // create an object and save into the database
 
-  const newUser = await User.create({
+  const user = await User.create({
     name,
     userName,
     bio,
     password,
+    avatar: {
+      public_id: avatar.public_id,
+      url: avatar.url,
+    },
   });
-  if (!newUser) {
+
+  const createdUser = await User.findById(user._id).select("-password");
+
+  if (!createdUser) {
     throw new ApiError(
       401,
       "something went wrong while registering the new user"
     );
   }
   // send back the response with status code
-  console.log(newUser);
+  // console.log(createdUser);
   return res
     .status(200)
-    .json(new ApiResponse(202, newUser, "register a new user successfully"));
+    .json(
+      new ApiResponse(202, createdUser, "register a new user successfully")
+    );
 });
 
 // login controller
@@ -110,7 +131,6 @@ const loggedInUser = asyncHandler(async (req, res) => {
         202,
         {
           user: user,
-          token: token,
         },
         "logged in successfully"
       )
@@ -136,4 +156,21 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     .clearCookie("accessToken", options)
     .json(new ApiResponse(202, {}, "logout successfully"));
 });
-export { registerUser, loggedInUser, logoutUser };
+
+// get my profile
+
+const getMyProfile = asyncHandler(async (req, res) => {
+  const userProfile = await User.findById(req.user._id);
+  if (!userProfile) {
+    throw new ApiError(403, "user profile does not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(202, userProfile, "successfully get the user Profile")
+    );
+});
+
+const searchUser = asyncHandler(async (req, res) => {});
+export { registerUser, loggedInUser, logoutUser, getMyProfile, searchUser };

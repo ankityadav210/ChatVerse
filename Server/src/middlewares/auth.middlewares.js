@@ -10,7 +10,7 @@ export const verifyJwtUser = asyncHandler(async (req, res, next) => {
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
     if (!token) {
-      throw new ApiError(401, "token does not found so unauthorized access");
+      throw new ApiError(401, " so please login you does not have a token");
     }
 
     // decode the token or verify the token
