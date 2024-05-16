@@ -1,5 +1,6 @@
 import { app } from "./app.js";
 import connectDB from "./db/dbConnection.js";
+import { createUser } from "./seeders/user.js";
 import dotenv from "dotenv";
 
 dotenv.config({
@@ -13,6 +14,7 @@ connectDB()
     app.on("error", (err) => {
       console.log("server error ", err);
     });
+
     app.listen(port, () => {
       console.log(
         `server is running on  port ${port} and its link is http://localhost:${port}`
@@ -22,3 +24,5 @@ connectDB()
   .catch((error) => {
     console.log("mongo Db connection failed  !!!!!", error);
   });
+
+//  createUser(10);  to create a random user data using faker npm package
