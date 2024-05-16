@@ -3,7 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   // algorithm  for register a new user
@@ -30,17 +30,20 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // console.log(req.file);
   // upload the avatar file in the cloudinary
-  const avatarLocalPath = req.file?.path;
+  const file = req.file;
 
-  if (!avatarLocalPath) {
-    throw new ApiError(404, "local path for avatar not found");
+  if (!file) {
+    throw new ApiError(404, "please upload avatar");
   }
 
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-  if (!avatar) {
-    throw new ApiError(401, "avatar is not uploaded");
+  const result = await uploadFilesToCloudinary([file]);
+  if (!result) {
+    throw new ApiError(404, "files is not uploaded successfully");
   }
-  console.log(avatar);
+  const avatar = {
+    public_id: result[0].public_id,
+    url: result[0].url,
+  };
 
   // check the user its existing or new
 
@@ -57,10 +60,7 @@ const registerUser = asyncHandler(async (req, res) => {
     userName,
     bio,
     password,
-    avatar: {
-      public_id: avatar.public_id,
-      url: avatar.url,
-    },
+    avatar,
   });
 
   const createdUser = await User.findById(user._id).select("-password");
