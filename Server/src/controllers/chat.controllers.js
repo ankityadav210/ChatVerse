@@ -307,6 +307,87 @@ const sendAttachments = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(202, message, "send attachments successfully"));
 });
+
+const renameGroup = asyncHandler(async (req, res) => {
+  const chatId = req.params.id;
+  const { name } = req.body; // name of group chat
+
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) {
+    throw new ApiError(401, "chat does not found");
+  }
+
+  if (!chat.groupChat) {
+    throw new ApiError(404, " group chat does not found");
+  }
+
+  if (!name) {
+    throw new ApiError(404, "name of group does not found");
+  }
+  // check if it  is admin then only  change the group name
+  if (chat.creator.toString() !== req.user._id.toString()) {
+    throw new ApiError(
+      403,
+      " i am not a admin of group so we does not change the group name "
+    );
+  }
+  const oldGroupName = chat.name;
+
+  chat.name = name;
+  await chat.save(); // save the data into mongo db
+
+  // emit  event
+  emitEvent(req, REFETCH_CHATS, chat.members);
+
+  return res.status(200).json(
+    new ApiResponse(
+      202,
+      {
+        old: oldGroupName,
+        new: name,
+      },
+      "rename the group successfully"
+    )
+  );
+});
+
+const getChatDetails = asyncHandler(async (req, res) => {
+  console.log("populate");
+  if (req.query.populate === "true") {
+    const chat = await Chat.findById(req.params.id)
+      .populate("members", "name avatar")
+      .lean(); // it become the lean object not a db object just like as classical js object
+    if (!chat) {
+      throw new ApiError(404, "chat does not found");
+    }
+    chat.members = chat.members.map(({ _id, avatar, name }) => ({
+      _id,
+      name,
+      avatar: avatar.url,
+    }));
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(202, chat, "fetched the chat details successfully")
+      );
+  } else {
+    console.log("not populate");
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      throw new ApiError(404, "chat does not found");
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(202, chat, "chat details fetched successfully ???")
+      );
+  }
+});
+
+const deleteChat = asyncHandler((req, res) => {});
 export {
   generateGroupChat,
   getMyChats,
@@ -315,4 +396,7 @@ export {
   removeMember,
   leaveGroup,
   sendAttachments,
+  getChatDetails,
+  renameGroup,
+  deleteChat
 };
