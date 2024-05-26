@@ -3,6 +3,7 @@ import {
   deleteChat,
   generateGroupChat,
   getChatDetails,
+  getMessages,
   getMyChats,
   getMyGroups,
   leaveGroup,
@@ -25,7 +26,8 @@ router.put("/removemembers", verifyJwtUser, removeMember);
 router.delete("/leave/:id", verifyJwtUser, leaveGroup);
 router.post("/message", attachmentsMulter, verifyJwtUser, sendAttachments);
 
-// this can help to avoid multiple route dor the same route
+router.get("/message/:id", verifyJwtUser, getMessages);
+// this can help to avoid multiple route for the same route
 router.use(verifyJwtUser); // use the middle ware
 router.route("/:id").get(getChatDetails).put(renameGroup).delete(deleteChat);
 

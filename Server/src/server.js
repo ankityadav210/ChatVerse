@@ -1,3 +1,5 @@
+import { createGroupChats, createSingleChats } from "./seeders/chat.js";
+
 import { app } from "./app.js";
 import { v2 as cloudinary } from "cloudinary";
 import connectDB from "./db/dbConnection.js";
@@ -31,4 +33,4 @@ connectDB()
     console.log("mongo Db connection failed  !!!!!", error);
   });
 
-//  createUser(10);  to create a random user data using faker npm package
+//  createUser(10);  to create a sample user data using faker npm package

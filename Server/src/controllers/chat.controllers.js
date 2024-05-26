@@ -4,6 +4,10 @@ import {
   NEW_MESSAGE_ALERT,
   REFETCH_CHATS,
 } from "../constants.js";
+import {
+  deleteFilesFromCloudinary,
+  uploadFilesToCloudinary,
+} from "../utils/cloudinary.js";
 
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -13,7 +17,6 @@ import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { emitEvent } from "../utils/features.js";
 import { getOtherMember } from "../lib/helper.js";
-import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
 
 const generateGroupChat = asyncHandler(async (req, res) => {
   const { name, members } = req.body;
@@ -387,7 +390,79 @@ const getChatDetails = asyncHandler(async (req, res) => {
   }
 });
 
-const deleteChat = asyncHandler((req, res) => {});
+const deleteChat = asyncHandler(async (req, res) => {
+  const chatId = req.params.id;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    throw new ApiError(404, "chat does not  found");
+  }
+  const members = chat.members;
+
+  if (!chat.groupChat && chat.creator.toString() !== req.user._id.toString()) {
+    throw new ApiError(404, "you are not allowed to delete the chats !");
+  }
+
+  if (!chat.groupChat && !members.includes(req.user._id.toString)) {
+    throw new ApiError(404, "you are not allowed to delete the chats !");
+  }
+
+  // to delete we perform mainly two task
+  //  one is to delete the message
+  //  second is to delete the attachments and files
+
+  const messageWithAttachments = await Message.find({
+    chat: chatId,
+    attachments: { $exists: true, $ne: [] },
+  });
+
+  const public_ids = [];
+  messageWithAttachments.forEach(({ attachments }) => {
+    attachments.forEach(({ public_id }) => public_ids.push(public_id));
+  });
+
+  await Promise.all([
+    // delete the files from the cloudinary
+    deleteFilesFromCloudinary(public_ids),
+    // delete the  single chat
+    chat.deleteOne(),
+
+    Message.deleteMany({ chat: chatId }),
+  ]);
+
+  // emit the event
+  emitEvent(req, REFETCH_CHATS, members);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(202, [], "chat is deleted successfully"));
+});
+
+const getMessages = asyncHandler(async (req, res) => {
+  const chatId = req.params.id;
+  const { page = 1 } = req.query;
+  const resultPerPage = 20;
+  const skip = (page - 1) * resultPerPage;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    throw new ApiError(404, "chat does not found");
+  }
+
+  const [messages, totalMessagesCount] = await Promise.all([
+    Message.find({ chat: chatId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(resultPerPage)
+      .populate("sender", "name")
+      .lean(),
+    Message.countDocuments({ chat: chatId }),
+  ]);
+
+  const totalPages = Math.ceil(totalMessagesCount / resultPerPage);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(202, totalPages, messages.reverse()));
+});
 export {
   generateGroupChat,
   getMyChats,
@@ -398,5 +473,6 @@ export {
   sendAttachments,
   getChatDetails,
   renameGroup,
-  deleteChat
+  deleteChat,
+  getMessages,
 };
