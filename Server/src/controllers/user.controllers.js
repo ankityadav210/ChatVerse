@@ -19,14 +19,14 @@ const registerUser = asyncHandler(async (req, res) => {
   const { userName, password, bio, name } = req.body;
 
   // validation the input data
-  // console.log(req.body);
+  console.log(req.body);
   if (!userName || !password || !bio || !name) {
-    throw new ApiError(404, "all input data is required");
+    throw new ApiError(404, ` please enter all input fields`);
   }
 
-  if ([userName, bio, password, name].some((field) => field?.trim === "")) {
-    throw new ApiError(400, "all fields are must be required");
-  }
+  // if ([userName, bio, password, name].some((field) => field?.trim === "")) {
+  //   throw new ApiError(400, `please enter ${field}`);
+  // }
 
   // console.log(req.file);
   // upload the avatar file in the cloudinary
