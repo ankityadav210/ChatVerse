@@ -1,4 +1,8 @@
-import { createGroupChats, createSingleChats } from "./seeders/chat.js";
+import {
+  createGroupChats,
+  createMessagesInAChat,
+  createSingleChats,
+} from "./seeders/chat.js";
 
 import { app } from "./app.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -34,3 +38,5 @@ connectDB()
   });
 
 //  createUser(10);  to create a sample user data using faker npm package
+
+// createMessagesInAChat("6645691bd543b23436ad42f1", 50);
