@@ -1,7 +1,12 @@
+import { NEW_REQUEST, REFETCH_CHATS } from "../constants.js";
+
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Chat } from "../models/chats.models .js";
+import { Request } from "../models/request.models .js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { emitEvent } from "../utils/features.js";
 import jwt from "jsonwebtoken";
 import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
 
@@ -172,5 +177,136 @@ const getMyProfile = asyncHandler(async (req, res) => {
     );
 });
 
-const searchUser = asyncHandler(async (req, res) => {});
-export { registerUser, loggedInUser, logoutUser, getMyProfile, searchUser };
+const searchUser = asyncHandler(async (req, res) => {
+  const { name = "" } = req.query;
+  const myChats = await Chat.find({ groupChat: false, members: req.user._id });
+  // get all members from my chat in this friends and other both are included
+  const allMembersInMyChats = myChats.flatMap((chat) => chat.members);
+
+  // get all users that are not my friends and me
+  // users that does not have any chats
+  const allUsersExceptMeAndFriends = await User.find({
+    _id: { $nin: allMembersInMyChats },
+    name: { $regex: name, $options: "i" },
+  });
+
+  // modifying the response
+  const users = allUsersExceptMeAndFriends.map(({ _id, name, avatar }) => ({
+    _id,
+    name,
+    avatar: avatar.url,
+  }));
+  return res.status(200).json(new ApiResponse(202, users));
+});
+
+const sendFriendRequest = asyncHandler(async (req, res) => {
+  // id of receiver to send a request
+  const { userId } = req.body;
+  if (!userId) {
+    throw new ApiError(400, "user id does not found");
+  }
+
+  const request = await Request.findOne({
+    $or: [
+      { sender: req.user._id, receiver: userId },
+      { sender: userId, receiver: req.user._id },
+    ],
+  });
+
+  if (request) {
+    throw new ApiError(400, "request is already sent");
+  }
+
+  await Request.create({
+    sender: req.user._id,
+    receiver: userId,
+  });
+
+  emitEvent(req, NEW_REQUEST, [userId]);
+
+  return res.status(200).json(new ApiResponse(202, [], "friend request send"));
+});
+
+const acceptFriendRequest = asyncHandler(async (req, res) => {
+  const { requestId, accept } = req.body;
+  if (!requestId) {
+    throw new ApiError(404, "request id does not found");
+  }
+
+  const request = await Request.findById(requestId)
+    .populate("sender", "name")
+    .populate("receiver", "name");
+
+  if (!request) {
+    throw new ApiError(404, "request does not found");
+  }
+
+  if (request.receiver._id.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorized to accept this request");
+  }
+
+  if (!accept) {
+    await request.deleteOne();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(203, [], "Friend request rejected"));
+  }
+
+  const members = [request.sender._id, request.receiver._id];
+
+  await Promise.all([
+    Chat.create({
+      members,
+      name: `${request.sender.name}-${request.receiver.name}`,
+    }),
+    request.deleteOne(),
+  ]);
+
+  // emit the event
+  emitEvent(req, REFETCH_CHATS, members);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        202,
+        { sender: request.sender_id },
+        "friend request accepted"
+      )
+    );
+});
+
+const getMyNotifications = asyncHandler(async (req, res) => {
+  const requests = await Request.find({ receiver: req.user._id }).populate(
+    "sender",
+    "name avatar"
+  );
+
+  // transform the response
+  const allRequests = requests.map(({ _id, sender }) => ({
+    _id,
+    sender: {
+      _id: sender._id,
+      name: sender.name,
+      avatar: sender.avatar.url,
+    },
+  }));
+
+  return res
+    .status(200)
+    .json(new ApiResponse(203, allRequests, "notifications"));
+});
+
+const getMyFriends = asyncHandler(async (req, res, next) => {});
+export {
+  registerUser,
+  loggedInUser,
+  logoutUser,
+  getMyProfile,
+  searchUser,
+  sendFriendRequest,
+  acceptFriendRequest,
+  getMyNotifications,
+  getMyFriends,
+};

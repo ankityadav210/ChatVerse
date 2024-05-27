@@ -40,3 +40,4 @@ connectDB()
 //  createUser(10);  to create a sample user data using faker npm package
 
 // createMessagesInAChat("6645691bd543b23436ad42f1", 50);
+// createSingleChats(10);
