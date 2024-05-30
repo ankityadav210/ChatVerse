@@ -7,6 +7,7 @@ import { Request } from "../models/request.models .js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { emitEvent } from "../utils/features.js";
+import { getOtherMember } from "../lib/helper.js";
 import jwt from "jsonwebtoken";
 import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
 
@@ -298,7 +299,42 @@ const getMyNotifications = asyncHandler(async (req, res) => {
     .json(new ApiResponse(203, allRequests, "notifications"));
 });
 
-const getMyFriends = asyncHandler(async (req, res, next) => {});
+const getMyFriends = asyncHandler(async (req, res) => {
+  const chatId = req.query.chatId;
+
+  const myChats = await Chat.find({
+    groupChat: false,
+    members: req.user._id,
+  }).populate("members", "name avatar");
+  console.log(myChats);
+  console.log(req.user._id);
+  const friends = myChats.map(({ members }) => {
+    console.log(members);
+    const otherUser = getOtherMember(members, req.user);
+    console.log(otherUser);
+
+    return {
+      _id: otherUser._id,
+      name: otherUser.name,
+      avatar: otherUser.avatar.url,
+    };
+  });
+
+  if (chatId) {
+    const chat = await Chat.findById(chatId);
+    const availableFriends = friends.filter(
+      (friend) => !chat.members.includes(friend._id)
+    );
+
+    return res
+      .status(200)
+      .json(new ApiResponse(203, availableFriends, "friends"));
+  } else {
+    return res
+      .status(200)
+      .json(new ApiResponse(204, friends, "get all friends"));
+  }
+});
 export {
   registerUser,
   loggedInUser,

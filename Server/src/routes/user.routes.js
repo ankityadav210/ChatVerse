@@ -1,5 +1,6 @@
 import {
   acceptFriendRequest,
+  getMyFriends,
   getMyNotifications,
   getMyProfile,
   loggedInUser,
@@ -26,5 +27,7 @@ router.put("/send-request", verifyJwtUser, sendFriendRequest);
 
 router.get("/notifications", verifyJwtUser, getMyNotifications);
 router.put("/accept-request", verifyJwtUser, acceptFriendRequest);
+
+router.get("/friends", verifyJwtUser, getMyFriends);
 
 export default router;
