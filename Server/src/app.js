@@ -1,10 +1,13 @@
+import { corsOption, getSockets } from "./utils/features.js";
+
+import { Message } from "./models/messages.models .js";
+import { NEW_MESSAGE } from "./constants.js";
 import { Server } from "socket.io";
 import chatRoute from "./routes/chat.routes.js";
 import { v2 as cloudinary } from "cloudinary";
 import { connectDB } from "./db/dbConnection.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { corsOption } from "./utils/features.js";
 import { createServer } from "http";
 import dotenv from "dotenv";
 import { errorMiddleware } from "./middlewares/error.middlewares.js";
@@ -21,6 +24,7 @@ dotenv.config({
 const port = process.env.PORT || 3000;
 const envMode = process.env.NODE_ENV.trim() || "PRODUCTION";
 const mongoURI = process.env.MONGODB_URI;
+const userSocketIDs = new Map();
 
 // called the mongo db connection function
 connectDB(mongoURI);
@@ -65,10 +69,54 @@ app.get("/", (req, res) => {
 // event for the socket io
 
 io.on("connection", (socket) => {
-  console.log("a user is connected", socket.id);
+  const user = {
+    _id: "hello",
+    name: "mogo",
+  };
 
+  userSocketIDs.set(user._id.toString(), socket.id);
+  // currently active users
+  console.log(userSocketIDs);
+  console.log("a user is connected : ", socket.id);
+
+  socket.on(NEW_MESSAGE, async ({ chatId, members, message }) => {
+    const messageForRealTime = {
+      _id: uuid(),
+      content: message,
+      sender: {
+        _id: user._id,
+        name: user.name,
+      },
+      chat: chatId,
+      createdAt: new Date().toISOString(),
+    };
+
+    // for db
+    const messageForDB = {
+      content: message,
+      sender: user._id,
+      chat: chatId,
+    };
+
+    // members
+    const membersSocket = getSockets(members);
+    io.to(membersSocket).emit(NEW_MESSAGE, {
+      message: messageForRealTime,
+      chat: chatId,
+    });
+    io.to(membersSocket).emit("NEW_MESSAGE_ALERT", { chatId });
+
+    //save  message  in the db
+
+    try {
+      await Message.create(messageForDB);
+    } catch (error) {
+      console.log(error);
+    }
+  });
   socket.on("disconnect", () => {
     console.log("user disconnected");
+    userSocketIDs.delete(user._id.toString());
   });
 });
 
@@ -77,3 +125,5 @@ app.use(errorMiddleware);
 server.listen(port, () => {
   console.log(`Server is running on port ${port} in ${envMode} Mode`);
 });
+
+export { envMode, userSocketIDs };

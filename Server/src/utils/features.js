@@ -1,5 +1,7 @@
 // create a function to emit a event for the socket io
 
+import { userSocketIDs } from "../app.js";
+
 function emitEvent(req, event, users, data) {
   console.log("emitting event", event);
 }
@@ -15,4 +17,13 @@ const corsOption = {
   methods: ["GET", "POST", "PUT", "DELETE"],
   Credential: true,
 };
-export { emitEvent, corsOption };
+
+// socket
+
+const getSockets = (users = []) => {
+  const sockets = users.map((user) => {
+    userSocketIDs.get(user._id.toString());
+  });
+  return sockets;
+};
+export { emitEvent, corsOption, getSockets };
