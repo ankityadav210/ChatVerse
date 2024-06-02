@@ -1,3 +1,4 @@
+
 import UserItem from "@/components/shared/UserItem";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -235,5 +236,6 @@ const GroupListItem = memo(({ group, chatId }) => {
     </Link>
   );
 });
+
 
 export default Groups;
