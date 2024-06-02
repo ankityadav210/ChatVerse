@@ -1,7 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TbEyeFilled } from "react-icons/tb";
 
 import {
   Card,
@@ -15,11 +14,13 @@ import { useRef, useState } from "react";
 import { useInputValidation, useStrongPassword } from "6pp";
 import { usernameValidator } from "@/helpers/validators";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, EyeOffIcon, User } from "lucide-react";
 
 const Signup = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [hidePassword, setHidePassword] = useState(true);
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -42,6 +43,9 @@ const Signup = () => {
   const redirectButton = () => {
     navigate("/login");
   };
+  const handleHidePassword = () => {
+    setHidePassword(!hidePassword);
+  };
 
   return (
     <div className="h-screen flex items-center justify-center">
@@ -51,22 +55,25 @@ const Signup = () => {
             <div className="grid w-full items-center gap-4">
               <CardHeader>
                 <div className="flex justify-center items-center">
-                  <Avatar className="size-48">
-                    <input
-                      style={{ display: "none" }}
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                    />
-                    <AvatarImage
-                      src={selectedImage || "https://github.com/shadcn.png"}
-                      alt={"Upload Avatar"}
-                      onClick={handleImageClick}
-                      style={{ cursor: "pointer" }}
-                    />
+                  <button onClick={handleImageClick}>
+                    <Avatar className="size-48">
+                      <input
+                        style={{ display: "none" }}
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                      />
+                      <AvatarImage
+                        src={selectedImage || <User className={"size-40"} />}
+                        alt={"Upload Avatar"}
+                        style={{ cursor: "pointer" }}
+                      />
 
-                    <AvatarFallback>Avatar</AvatarFallback>
-                  </Avatar>
+                      <AvatarFallback>
+                        {<User className={"size-40"} />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
                 </div>
               </CardHeader>
               <div className="flex flex-col space-y-1.5">
@@ -90,15 +97,22 @@ const Signup = () => {
               {username.error && username.value && (
                 <div className="text-red-500 text-sm">{username.error}</div>
               )}
-              <div className="flex flex-col space-y-1.5">
+              <div className="flex relative flex-col space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input
-                  type="password"
+                  type={hidePassword ? "password" : "text"}
                   id="password"
                   placeholder="Enter your password..."
                   value={password.value}
                   onChange={password.changeHandler}
                 />
+                <div className=" absolute top-6 right-4 cursor-pointer">
+                  {hidePassword ? (
+                    <EyeOff onClick={handleHidePassword} />
+                  ) : (
+                    <Eye onClick={handleHidePassword} />
+                  )}
+                </div>
               </div>
               {password.error && password.value && (
                 <div className="text-red-500 text-sm">{password.error}</div>

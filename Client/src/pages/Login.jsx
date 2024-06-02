@@ -1,4 +1,3 @@
-import { useInputValidation } from "6pp";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,14 +8,16 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { usernameValidator } from "@/helpers/validators";
+import { Eye, EyeOff } from "lucide-react";
 
 import * as React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const username = useInputValidation("", usernameValidator);
-  const password = useInputValidation();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [hidePassword, setHidePassword] = useState(true);
 
   const navigate = useNavigate();
 
@@ -26,6 +27,9 @@ const Login = () => {
 
   const redirectButton = () => {
     navigate("/signup");
+  };
+  const handleHidePassword = () => {
+    setHidePassword(!hidePassword);
   };
   // const [isLoading, setIsLoading] = useState(false);
 
@@ -78,24 +82,31 @@ const Login = () => {
                   id="username"
                   type={"text"}
                   placeholder="Enter your username..."
-                  value={username.value}
-                  onChange={username.changeHandler}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
-              <div className="flex flex-col space-y-1.5">
+              <div className="relative flex flex-col space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
-                  type={"password"}
+                  type={hidePassword ? "password" : "text"}
                   placeholder="Enter your password..."
-                  value={password.value}
-                  onChange={password.changeHandler}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
+                <div className=" absolute top-6 right-4 cursor-pointer">
+                  {hidePassword ? (
+                    <EyeOff onClick={handleHidePassword} />
+                  ) : (
+                    <Eye onClick={handleHidePassword} />
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
           <CardFooter className={"flex justify-center"}>
-            {!username.value || !password.value ? (
+            {!username || !password ? (
               <Button
                 disabled
                 type="submit"

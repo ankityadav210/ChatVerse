@@ -7,7 +7,9 @@ import { HelmetProvider } from "react-helmet-async";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HelmetProvider>
-      <App />
+      <div onContextMenu={(e) => e.preventDefault()}>
+        <App />
+      </div>
     </HelmetProvider>
   </React.StrictMode>
 );

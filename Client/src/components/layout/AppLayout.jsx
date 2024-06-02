@@ -2,12 +2,22 @@ import React from "react";
 import Header from "./Header";
 import Title from "../shared/Title";
 import { Grid } from "@mui/material";
-import ScrollChats from "../shared/ScrollChats";
+import { sampleChats } from "@/constants/sampleData";
+import ChatList from "@/specific/ChatList";
+import { useParams } from "react-router-dom";
+import Profile from "@/specific/Profile";
 
 const AppLayout = () => (WrappedComponent) => {
   return (props) => {
+    const params = useParams();
+    const chatId = params.chatId;
+
+    const handleDeleteChat = (e, _id, groupChat) => {
+      e.preventDefault();
+      console.log("Delete Chat", _id, groupChat);
+    };
     return (
-      <>
+      <div className="overflow-y-hidden">
         <Title />
         <Header />
         <Grid container height={"calc(100vh - 4rem)"}>
@@ -20,7 +30,13 @@ const AppLayout = () => (WrappedComponent) => {
             }}
             height={"100%"}
           >
-            <ScrollChats />
+            <ChatList
+              chats={sampleChats}
+              chatId={chatId}
+              newMessagesAlert={[{ chatId, count: 4 }]}
+              handleDeleteChat={handleDeleteChat}
+              onlineUsers={["1", "2", "3", "4"]}
+            />
           </Grid>
           <Grid item xs={12} sm={8} md={5} lg={6} height={"100%"}>
             <WrappedComponent {...props} />
@@ -33,13 +49,13 @@ const AppLayout = () => (WrappedComponent) => {
             sx={{
               display: { xs: "none", md: "block" },
               padding: "2rem",
-              bgcolor: "rgba(0,0,0,0.85)",
+              bgcolor: "black",
             }}
           >
-            third
+            <Profile />
           </Grid>
         </Grid>
-      </>
+      </div>
     );
   };
 };
