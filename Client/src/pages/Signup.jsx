@@ -13,14 +13,21 @@ import { Label } from "@/components/ui/label";
 import { useRef, useState } from "react";
 import { useInputValidation, useStrongPassword } from "6pp";
 import { usernameValidator } from "@/helpers/validators";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, EyeOffIcon, User } from "lucide-react";
+import { redirect, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, User } from "lucide-react";
+import axios from "axios";
+import { server } from "../constants/config";
+import { useDispatch } from "react-redux";
+import { userExists } from "../redux/reducers/auth";
+import toast from "react-hot-toast";
 
 const Signup = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [hidePassword, setHidePassword] = useState(true);
+  const [imageFile, setImageFile] = useState(null);
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -29,6 +36,7 @@ const Signup = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setSelectedImage(URL.createObjectURL(file));
+    setImageFile(file);
   };
 
   const name = useInputValidation("");
@@ -36,8 +44,32 @@ const Signup = () => {
   const bio = useInputValidation("");
   const password = useStrongPassword();
 
-  const handleSubmit = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
+    const formData = new FormData();
+    formData.append("name", name.value);
+    formData.append("userName", username.value);
+    formData.append("bio", bio.value);
+    formData.append("password", password.value);
+    formData.append("avatar", imageFile);
+    const config = {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    };
+    try {
+      const { data } = await axios.post(
+        `${server}/api/v1/users/register`,
+        formData,
+        config
+      );
+
+      dispatch(userExists(true));
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Something Went Wrong");
+    }
   };
 
   const redirectButton = () => {
@@ -48,8 +80,8 @@ const Signup = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit}>
+    <div className="h-screen flex items-center justify-center bg-gradient-to-r from-fuchsia-600 to-indigo-600">
+      <form onSubmit={handleSignUp}>
         <Card className="w-[350px]">
           <CardContent>
             <div className="grid w-full items-center gap-4">

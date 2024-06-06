@@ -1,4 +1,3 @@
-import { transformImage } from "@/lib/features";
 import { FileSymlinkIcon } from "lucide-react";
 import React from "react";
 
@@ -10,7 +9,7 @@ const RenderAttachment = (file, url) => {
     case "image":
       return (
         <img
-          src={transformImage(url, 200)}
+          src={url}
           alt="Attachement"
           width={"200px"}
           height={"150px"}

@@ -3,7 +3,7 @@ import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 
-export const verifyJwtUser = asyncHandler(async (req, res, next) => {
+const verifyJwtUser = asyncHandler(async (req, res, next) => {
   try {
     // get the token from cookies or header
     const token =
@@ -15,7 +15,7 @@ export const verifyJwtUser = asyncHandler(async (req, res, next) => {
 
     // decode the token or verify the token
 
-    const decodedToken = await jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
     if (!decodedToken) {
       throw new ApiError(400, "not have proper key so  no access");
     }
@@ -31,3 +31,23 @@ export const verifyJwtUser = asyncHandler(async (req, res, next) => {
     console.log(error);
   }
 });
+
+const socketAuthenticator = async (err, socket, next) => {
+  try {
+    if (err) return next(err);
+    const authToken = socket.request.cookies?.accessToken;
+    if (!authToken)
+      return new ApiError(400, "not have proper key so  no access");
+    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET_KEY);
+    const user = await User.findById(decodedData.userId);
+    if (!user) return new ApiError(400, "not have proper key so  no access");
+    socket.user = user;
+
+    return next();
+  } catch (error) {
+    console.log(error);
+    return next(new ApiError(401, "Please login to access this route"));
+  }
+};
+
+export { verifyJwtUser, socketAuthenticator };

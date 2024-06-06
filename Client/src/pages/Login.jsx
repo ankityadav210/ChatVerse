@@ -8,21 +8,49 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
 
 import * as React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import toast from "react-hot-toast";
+import { useInputValidation } from "6pp";
+import { server } from "../constants/config";
+import { userExists } from "../redux/reducers/auth";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const username = useInputValidation("");
+  const password = useInputValidation("");
+
   const [hidePassword, setHidePassword] = useState(true);
 
   const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
+  const dispatch = useDispatch();
+  const handleLogin = async (e) => {
     e.preventDefault();
+    const config = {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    try {
+      const { data } = await axios.post(
+        `${server}/api/v1/users/login`,
+        {
+          userName: username.value,
+          password: password.value,
+        },
+
+        config
+      );
+      dispatch(userExists(true));
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Something Went Wrong");
+    }
   };
 
   const redirectButton = () => {
@@ -31,45 +59,10 @@ const Login = () => {
   const handleHidePassword = () => {
     setHidePassword(!hidePassword);
   };
-  // const [isLoading, setIsLoading] = useState(false);
-
-  // const handleLogin = async (e) => {
-  //   e.preventDefault();
-  //   const toastId = toast.loading("Logging In...");
-  //   setIsLoading(true);
-
-  //   const config = {
-  //     withCredentials: true,
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //     },
-  //   };
-
-  //   try {
-  //     const { data } = await axios.post(
-  //       `${server}/api/v1/user/login`,
-  //       {
-  //         username: username.value,
-  //         password: password.value,
-  //       },
-  //       config
-  //     );
-  //     dispatch(userExists(data.user));
-  //     toast.success(data.message, {
-  //       id: toastId,
-  //     });
-  //   } catch (error) {
-  //     toast.error(error?.response?.data?.message || "Something Went Wrong", {
-  //       id: toastId,
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   return (
-    <div className="h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit}>
+    <div className="h-screen flex items-center justify-center bg-gradient-to-r from-fuchsia-600 to-indigo-600">
+      <form onSubmit={handleLogin}>
         <Card className="w-[350px]">
           <CardHeader>
             <CardTitle className={"flex justify-center"}>CHAT-VERSE</CardTitle>
@@ -82,8 +75,8 @@ const Login = () => {
                   id="username"
                   type={"text"}
                   placeholder="Enter your username..."
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={username.value}
+                  onChange={username.changeHandler}
                 />
               </div>
               <div className="relative flex flex-col space-y-1.5">
@@ -92,8 +85,8 @@ const Login = () => {
                   id="password"
                   type={hidePassword ? "password" : "text"}
                   placeholder="Enter your password..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={password.value}
+                  onChange={password.changeHandler}
                 />
                 <div className=" absolute top-6 right-4 cursor-pointer">
                   {hidePassword ? (
@@ -106,7 +99,7 @@ const Login = () => {
             </div>
           </CardContent>
           <CardFooter className={"flex justify-center"}>
-            {!username || !password ? (
+            {!username.value || !password.value ? (
               <Button
                 disabled
                 type="submit"

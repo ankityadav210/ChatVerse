@@ -1,4 +1,4 @@
-import { corsOption, getSockets } from "./utils/features.js";
+import { corsOption } from "./utils/features.js";
 
 import { Message } from "./models/messages.models .js";
 import { NEW_MESSAGE } from "./constants.js";
@@ -14,6 +14,7 @@ import { errorMiddleware } from "./middlewares/error.middlewares.js";
 import express from "express";
 import userRoute from "./routes/user.routes.js";
 import { v4 as uuid } from "uuid";
+import { socketAuthenticator } from "./middlewares/auth.middlewares.js";
 
 // config the dotenv file
 
@@ -49,9 +50,9 @@ app.use(express.json({ limit: "16kb" }));
 
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
-app.use(cors(corsOption));
 
 app.use(cookieParser());
+app.use(cors(corsOption));
 
 // import routes
 
@@ -67,12 +68,16 @@ app.get("/", (req, res) => {
 });
 
 // event for the socket io
+io.use((socket, next) => {
+  cookieParser()(
+    socket.request,
+    socket.request.res,
+    async (err) => await socketAuthenticator(err, socket, next)
+  );
+});
 
 io.on("connection", (socket) => {
-  const user = {
-    _id: "hello",
-    name: "mogo",
-  };
+  const user = socket.user;
 
   userSocketIDs.set(user._id.toString(), socket.id);
   // currently active users

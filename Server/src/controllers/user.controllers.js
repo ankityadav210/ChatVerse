@@ -6,7 +6,6 @@ import { Chat } from "../models/chats.models .js";
 import { Request } from "../models/request.models .js";
 import { User } from "../models/users.models.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { emitEvent } from "../utils/features.js";
 import { getOtherMember } from "../lib/helper.js";
 import jwt from "jsonwebtoken";
 import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
@@ -79,19 +78,27 @@ const registerUser = asyncHandler(async (req, res) => {
   }
   // send back the response with status code
   // console.log(createdUser);
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(202, createdUser, "register a new user successfully")
-    );
+  const options = {
+    maxAge: 2 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: process.env.JWT_EXPIRY,
+  });
+  return res.status(200).cookie("accessToken", token, options).json({
+    success: true,
+    createdUser,
+
+    message: "registered successfully",
+  });
 });
 
 // login controller
 
 const loggedInUser = asyncHandler(async (req, res) => {
   const { userName, password } = req.body;
-
-  console.log(req.body);
 
   // validation
   if (!userName || !password) {
@@ -108,7 +115,6 @@ const loggedInUser = asyncHandler(async (req, res) => {
   // check the password correct or not
 
   const isPasswordValid = await user.isPasswordCorrect(password);
-  console.log(isPasswordValid);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "password is not correct");
@@ -124,23 +130,20 @@ const loggedInUser = asyncHandler(async (req, res) => {
   }
 
   const options = {
-    // maxAge: 2 * 24 * 60 * 60 * 1000,
+    maxAge: 2 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     secure: true,
+    sameSite: "none",
   };
   // store the token in cookies
   return res
     .status(200)
     .cookie("accessToken", token, options)
-    .json(
-      new ApiResponse(
-        202,
-        {
-          user: user,
-        },
-        "logged in successfully"
-      )
-    );
+    .json({
+      success: true,
+      user,
+      message: `Welcome ${user.name}`,
+    });
 });
 
 const logoutUser = asyncHandler(async (req, res, next) => {
@@ -157,25 +160,25 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     secure: true,
   };
 
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .json(new ApiResponse(202, {}, "logout successfully"));
+  return res.status(200).clearCookie("accessToken", options).json({
+    success: true,
+    message: "Logged out successfully",
+  });
 });
 
 // get my profile
 
 const getMyProfile = asyncHandler(async (req, res) => {
-  const userProfile = await User.findById(req.user._id);
-  if (!userProfile) {
-    throw new ApiError(403, "user profile does not found");
+  const user = await User.findById(req.user);
+  if (!user) {
+    return new ApiError(403, "user profile does not found");
   }
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(202, userProfile, "successfully get the user Profile")
-    );
+  res.status(202).json({
+    success: true,
+    user,
+    message: "Successfully get the user Profile",
+  });
 });
 
 const searchUser = asyncHandler(async (req, res) => {
@@ -197,14 +200,18 @@ const searchUser = asyncHandler(async (req, res) => {
     name,
     avatar: avatar.url,
   }));
-  return res.status(200).json(new ApiResponse(202, users));
+  return res.status(200).json({
+    success: true,
+    users,
+    message: "successfully searched the users",
+  });
 });
 
 const sendFriendRequest = asyncHandler(async (req, res) => {
   // id of receiver to send a request
   const { userId } = req.body;
   if (!userId) {
-    throw new ApiError(400, "user id does not found");
+    throw new ApiError(400, "User id does not found");
   }
 
   const request = await Request.findOne({
@@ -215,7 +222,7 @@ const sendFriendRequest = asyncHandler(async (req, res) => {
   });
 
   if (request) {
-    throw new ApiError(400, "request is already sent");
+    throw new ApiError(400, "Request is already sent");
   }
 
   await Request.create({
@@ -225,13 +232,16 @@ const sendFriendRequest = asyncHandler(async (req, res) => {
 
   emitEvent(req, NEW_REQUEST, [userId]);
 
-  return res.status(200).json(new ApiResponse(202, [], "friend request send"));
+  return res.status(200).json({
+    success: true,
+    message: "Friend Request Sent",
+  });
 });
 
 const acceptFriendRequest = asyncHandler(async (req, res) => {
   const { requestId, accept } = req.body;
   if (!requestId) {
-    throw new ApiError(404, "request id does not found");
+    throw new ApiError(404, "Request id does not found");
   }
 
   const request = await Request.findById(requestId)
@@ -239,19 +249,19 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
     .populate("receiver", "name");
 
   if (!request) {
-    throw new ApiError(404, "request does not found");
+    throw new ApiError(404, "Request does not found");
   }
 
   if (request.receiver._id.toString() !== req.user._id.toString()) {
     throw new ApiError(403, "You are not authorized to accept this request");
   }
-
   if (!accept) {
     await request.deleteOne();
 
-    return res
-      .status(200)
-      .json(new ApiResponse(203, [], "Friend request rejected"));
+    return res.status(200).json({
+      success: true,
+      message: "Friend Request Rejected",
+    });
   }
 
   const members = [request.sender._id, request.receiver._id];
@@ -267,15 +277,11 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
   // emit the event
   emitEvent(req, REFETCH_CHATS, members);
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        202,
-        { sender: request.sender_id },
-        "friend request accepted"
-      )
-    );
+  return res.status(200).json({
+    success: true,
+    message: "Friend Request Accepted",
+    senderId: request.sender._id,
+  });
 });
 
 const getMyNotifications = asyncHandler(async (req, res) => {
@@ -294,9 +300,11 @@ const getMyNotifications = asyncHandler(async (req, res) => {
     },
   }));
 
-  return res
-    .status(200)
-    .json(new ApiResponse(203, allRequests, "notifications"));
+  return res.status(200).json({
+    success: true,
+    allRequests,
+    message: "Successfully get the user notifications:",
+  });
 });
 
 const getMyFriends = asyncHandler(async (req, res) => {
@@ -326,13 +334,17 @@ const getMyFriends = asyncHandler(async (req, res) => {
       (friend) => !chat.members.includes(friend._id)
     );
 
-    return res
-      .status(200)
-      .json(new ApiResponse(203, availableFriends, "friends"));
+    return res.status(200).json({
+      success: true,
+      friends: availableFriends,
+      message: "Get available friends",
+    });
   } else {
-    return res
-      .status(200)
-      .json(new ApiResponse(204, friends, "get all friends"));
+    return res.status(200).json({
+      success: true,
+      friends,
+      message: "Get all friends",
+    });
   }
 });
 export {

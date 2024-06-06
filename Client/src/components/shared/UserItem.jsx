@@ -10,7 +10,7 @@ const UserItem = ({ user, handler, handlerIsLoading, isAdded = false }) => {
       <div className="flex items-center space-x-4 w-full">
         <Avatar>
           <AvatarImage
-            src={"https://github.com/shadcn.png"}
+            src={avatar}
             alt={"Upload Avatar"}
             style={{ cursor: "pointer" }}
           />

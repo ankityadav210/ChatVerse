@@ -10,7 +10,6 @@ import {
 } from "../utils/cloudinary.js";
 
 import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
 import { Chat } from "../models/chats.models .js";
 import { Message } from "../models/messages.models .js";
 import { User } from "../models/users.models.js";
@@ -42,11 +41,11 @@ const generateGroupChat = asyncHandler(async (req, res) => {
 
   emitEvent(req, REFETCH_CHATS, members);
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(202, groupChat, "new group chat created successfully")
-    );
+  return res.status(201).json({
+    message: "New group chat was created successfully",
+    success: true,
+    groupChat,
+  });
 });
 
 const getMyChats = asyncHandler(async (req, res) => {
@@ -77,9 +76,11 @@ const getMyChats = asyncHandler(async (req, res) => {
       }, []),
     };
   });
-  return res
-    .status(200)
-    .json(new ApiResponse(202, transformedChats, "chats fetched successfully"));
+  return res.status(200).json({
+    success: true,
+    chats: transformedChats,
+    message: "Successfully get my chats",
+  });
 });
 
 const getMyGroups = asyncHandler(async (req, res) => {
@@ -101,9 +102,11 @@ const getMyGroups = asyncHandler(async (req, res) => {
     name,
     avatar: members.slice(0, 3).map(({ avatar }) => avatar.url),
   }));
-  return res
-    .status(200)
-    .json(new ApiResponse(202, groups, "group fetched SUCCESSFULLY"));
+  return res.status(200).json({
+    success: true,
+    groups,
+    message: "Successfully get my groups",
+  });
 });
 
 const addMembers = asyncHandler(async (req, res) => {
@@ -154,9 +157,10 @@ const addMembers = asyncHandler(async (req, res) => {
 
   emitEvent(req, REFETCH_CHATS, chats.members);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(202, [], "members add successfully"));
+  return res.status(200).json({
+    success: true,
+    message: "Members added successfully",
+  });
 });
 
 const removeMember = asyncHandler(async (req, res, next) => {
@@ -201,11 +205,10 @@ const removeMember = asyncHandler(async (req, res, next) => {
 
   emitEvent(req, REFETCH_CHATS, allChatMembers);
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(202, [], "member is removed from the group successfully")
-    );
+  return res.status(200).json({
+    success: true,
+    message: "Member removed successfully",
+  });
 });
 
 const leaveGroup = asyncHandler(async (req, res) => {
@@ -247,9 +250,10 @@ const leaveGroup = asyncHandler(async (req, res) => {
 
   emitEvent(req, ALERT, chat.members, ` User ${user.name} left the group`);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(202, [], "leave the group successfully"));
+  return res.status(200).json({
+    success: true,
+    message: "Leave Group Successfully",
+  });
 });
 
 // send Attachments
@@ -306,9 +310,10 @@ const sendAttachments = asyncHandler(async (req, res) => {
   });
 
   emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
-  return res
-    .status(200)
-    .json(new ApiResponse(202, message, "send attachments successfully"));
+  return res.status(200).json({
+    success: true,
+    message,
+  });
 });
 
 const renameGroup = asyncHandler(async (req, res) => {
@@ -335,7 +340,6 @@ const renameGroup = asyncHandler(async (req, res) => {
       " i am not a admin of group so we does not change the group name "
     );
   }
-  const oldGroupName = chat.name;
 
   chat.name = name;
   await chat.save(); // save the data into mongo db
@@ -343,16 +347,10 @@ const renameGroup = asyncHandler(async (req, res) => {
   // emit  event
   emitEvent(req, REFETCH_CHATS, chat.members);
 
-  return res.status(200).json(
-    new ApiResponse(
-      202,
-      {
-        old: oldGroupName,
-        new: name,
-      },
-      "rename the group successfully"
-    )
-  );
+  return res.status(200).json({
+    success: true,
+    message: "Group renamed successfully",
+  });
 });
 
 const getChatDetails = asyncHandler(async (req, res) => {
@@ -370,23 +368,20 @@ const getChatDetails = asyncHandler(async (req, res) => {
       avatar: avatar.url,
     }));
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(202, chat, "fetched the chat details successfully")
-      );
+    return res.status(200).json({
+      success: true,
+      chat,
+    });
   } else {
-    console.log("not populate");
     const chat = await Chat.findById(req.params.id);
     if (!chat) {
       throw new ApiError(404, "chat does not found");
     }
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(202, chat, "chat details fetched successfully ???")
-      );
+    return res.status(200).json({
+      success: true,
+      chat,
+      message: "chat details fetched successfully",
+    });
   }
 });
 
@@ -432,9 +427,10 @@ const deleteChat = asyncHandler(async (req, res) => {
   // emit the event
   emitEvent(req, REFETCH_CHATS, members);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(202, [], "chat is deleted successfully"));
+  return res.status(200).json({
+    success: true,
+    message: "Chat deleted successfully",
+  });
 });
 
 const getMessages = asyncHandler(async (req, res) => {
@@ -460,15 +456,12 @@ const getMessages = asyncHandler(async (req, res) => {
   console.log(totalMessagesCount);
   const totalPages = Math.ceil(totalMessagesCount / resultPerPage);
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        202,
-        { messages: messages.reverse(), pages: totalPages },
-        "All the messages fetched successfully"
-      )
-    );
+  return res.status(200).json({
+    success: true,
+    messages: messages.reverse(),
+    totalPages,
+    message: "Message fetched successfully",
+  });
 });
 export {
   generateGroupChat,

@@ -7,28 +7,28 @@ const Profile = ({ user }) => {
     <div className="flex flex-col justify-center items-center space-x-2 relative top-24 ">
       <Avatar className="size-48 object-contain mb-4 ">
         <AvatarImage
-          src={<User className={"size-40"} />}
+          src={user?.avatar?.url || <User className={"size-40"} />}
           alt={"Upload Avatar"}
           style={{ cursor: "pointer" }}
         />
 
         <AvatarFallback>{<User className={"size-40 "} />}</AvatarFallback>
       </Avatar>
-      <ProfileCard heading={"Bio"} text={"sdsdcdsfdf"} />
+      <ProfileCard heading={"Bio"} text={user?.bio} />
       <div className="flex flex-col justify-between">
         <ProfileCard
           heading={"Username"}
-          text={"Puneet_28j"}
+          text={user?.userName}
           icon={<AtSignIcon className="text-white size-10" />}
         />
         <ProfileCard
           heading={"Name"}
-          text={"pune"}
+          text={user?.name}
           icon={<SmileIcon className="text-white size-10" />}
         />
         <ProfileCard
           heading={"Joined"}
-          text={moment("2024-05-20T00:00:00.000Z").fromNow()}
+          text={moment(user?.createdAt).fromNow()}
           icon={<Calendar className="text-white size-10" />}
         />
       </div>

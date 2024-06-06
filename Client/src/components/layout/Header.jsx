@@ -1,7 +1,8 @@
-import React, { memo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useInputValidation } from "6pp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { sampleNotifications, sampleUser } from "@/constants/sampleData";
+import { ListItem, Tooltip } from "@mui/material";
+import axios from "axios";
 import {
   BellIcon,
   LogOutIcon,
@@ -17,22 +29,75 @@ import {
   SquareMenuIcon,
   UsersRoundIcon,
 } from "lucide-react";
-import { Input } from "../ui/input";
-import { useInputValidation } from "6pp";
-import { List, ListItem, Tooltip } from "@mui/material";
+import React, { memo, useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import { server } from "../../constants/config";
+import { useAsyncMutation, useErrors } from "../../hooks/hook";
+import {
+  useAcceptFriendRequestMutation,
+  useGetNotificationsQuery,
+  useLazySearchUserQuery,
+  useMyChatsQuery,
+  useSendFriendRequestMutation,
+} from "../../redux/api/api";
+import { userNotExists } from "../../redux/reducers/auth";
+import ChatList from "../../specific/ChatList";
 import UserItem from "../shared/UserItem";
-import { sampleNotifications, sampleUser } from "@/constants/sampleData";
-import Groups from "@/pages/Groups";
-import { useNavigate } from "react-router-dom";
+import { Input } from "../ui/input";
 
 const Header = () => {
+  const params = useParams();
+  const chatId = params.chatId;
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const search = useInputValidation("");
   const groupName = useInputValidation("");
   const submitHandler = () => {};
 
+  const handleDeleteChat = (e, _id, groupChat) => {
+    e.preventDefault();
+    console.log("Delete Chat", _id, groupChat);
+  };
+
   const [members, setMembers] = useState(sampleUser);
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const { data, isLoading } = useMyChatsQuery("");
+  const [searchUser] = useLazySearchUserQuery("");
+  const [sendfriendRequest, isLoadingSendFriendRequest] = useAsyncMutation(
+    useSendFriendRequestMutation
+  );
+  const [acceptRequest] = useAcceptFriendRequestMutation();
+  const friendRequestHandler = async ({ _id, accept }) => {
+    try {
+      const res = await acceptRequest({ requestId: _id, accept });
+      if (res?.data?.success) {
+        toast.success(res?.data?.message);
+      } else toast.error(res?.data?.error || "Something went wrong");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const {
+    data: notificationData,
+    isLoading: loading,
+    isError: isNotificationError,
+    error: notificationError,
+  } = useGetNotificationsQuery();
+  useErrors([{ notificationError, isNotificationError }]);
+
+  useEffect(() => {
+    const timeOutId = setTimeout(() => {
+      searchUser(search.value)
+        .then(({ data }) => setUsers(data?.users))
+        .catch((e) => console.log(e));
+    }, 1000);
+    return () => {
+      clearTimeout(timeOutId);
+    };
+  }, [search.value]);
 
   const selectMemberHandler = (id) => {
     setMembers((prev) =>
@@ -52,15 +117,24 @@ const Header = () => {
         : [...prev, id]
     );
   };
-  console.log(selectedMembers);
-  let isLoadingSendFriendRequest = false;
+  // console.log(selectedMembers);
 
-  const addFriendHandler = (id) => {
-    console.log(id);
+  const addFriendHandler = async (id) => {
+    await sendfriendRequest("Sending friend request", { userId: id });
   };
-  const friendRequestHandler = ({ _id, accept }) => {};
-  const [users, setUsers] = useState(sampleUser);
+  const [users, setUsers] = useState([]);
   const navigateToGroup = () => navigate("/groups");
+  const logOuthandler = async () => {
+    try {
+      const { data } = await axios.get(`${server}/api/v1/users/logout`, {
+        withCredentials: true,
+      });
+      dispatch(userNotExists());
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Something went wrong");
+    }
+  };
 
   return (
     <header className="h-16 bg-pink-500 mb-0 ">
@@ -69,20 +143,22 @@ const Header = () => {
           CHAT-VERSE
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* search */}
+
+        <div className="flex items-center space-x-4 overflow-y-auto">
           <Dialog>
             <DialogTrigger className={"text-white  hover:text-black "}>
               <Tooltip title="Search">
                 <SearchIcon />
               </Tooltip>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className={"h-96 w-80"}>
               <DialogHeader>
                 <DialogTitle className={"flex justify-center"}>
                   Find People
                 </DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4  ">
                 <Input
                   id="name"
                   className=" py-5"
@@ -91,7 +167,8 @@ const Header = () => {
                   placeholder="Search for people..."
                 />
               </div>
-              <List>
+              <ScrollArea className=" overflow-y-auto ">
+                {/* <List className="overflow-y-auto "> */}
                 {users.map((i) => (
                   <UserItem
                     user={i}
@@ -100,7 +177,8 @@ const Header = () => {
                     handlerIsLoading={isLoadingSendFriendRequest}
                   />
                 ))}
-              </List>
+                {/* </List> */}
+              </ScrollArea>
             </DialogContent>
           </Dialog>
 
@@ -119,17 +197,27 @@ const Header = () => {
                   Notifications
                 </DialogTitle>
               </DialogHeader>
-              {sampleNotifications.length > 0 ? (
-                sampleNotifications.map((i) => (
-                  <NotificationItem
-                    sender={i.sender}
-                    _id={i._id}
-                    handler={friendRequestHandler}
-                    key={i._id}
-                  />
-                ))
+              {loading ? (
+                <div>loading,.,.,.,</div>
               ) : (
-                <div className="flex justify-center">No Notifications</div>
+                <>
+                  <ScrollArea className=" overflow-y-auto ">
+                    {notificationData?.allRequests.length > 0 ? (
+                      notificationData?.allRequests.map((i) => (
+                        <NotificationItem
+                          sender={i.sender}
+                          _id={i._id}
+                          handler={friendRequestHandler}
+                          key={i._id}
+                        />
+                      ))
+                    ) : (
+                      <div className="flex justify-center">
+                        No Notifications
+                      </div>
+                    )}
+                  </ScrollArea>
+                </>
               )}
             </DialogContent>
           </Dialog>
@@ -185,7 +273,7 @@ const Header = () => {
             </DialogContent>
           </Dialog>
 
-          {/* menu */}
+          {/* manage group */}
 
           <Separator orientation="vertical" />
           <Dialog>
@@ -196,9 +284,35 @@ const Header = () => {
             </DialogTrigger>
           </Dialog>
 
+          {/* mobile menu chats */}
+
+          <Separator orientation="vertical" />
+          <Sheet>
+            <SheetTrigger asChild>
+              <SquareMenuIcon className="block sm:hidden text-white hover:text-black" />
+            </SheetTrigger>
+            <SheetContent className={"bg-black text-white p-0"} side={"left"}>
+              <SheetHeader>
+                <SheetTitle>Chats</SheetTitle>
+              </SheetHeader>
+
+              <ChatList
+                chats={data?.chats}
+                chatId={chatId}
+                handleDeleteChat={handleDeleteChat}
+              />
+              <Separator />
+            </SheetContent>
+          </Sheet>
+
+          {/* logout */}
+
           <Separator orientation="vertical" />
           <Tooltip title="Logout">
-            <LogOutIcon className="text-white hover:text-black" />
+            <LogOutIcon
+              className="text-white hover:text-black hover:cursor-pointer"
+              onClick={logOuthandler}
+            />
           </Tooltip>
         </div>
       </div>

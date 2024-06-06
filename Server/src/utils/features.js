@@ -2,10 +2,6 @@
 
 import { userSocketIDs } from "../app.js";
 
-function emitEvent(req, event, users, data) {
-  console.log("emitting event", event);
-}
-
 // cors option
 
 const corsOption = {
@@ -15,7 +11,7 @@ const corsOption = {
     process.env.CLIENT_URL,
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
-  Credential: true,
+  credentials: true,
 };
 
 // socket
@@ -26,4 +22,10 @@ const getSockets = (users = []) => {
   });
   return sockets;
 };
-export { emitEvent, corsOption, getSockets };
+
+const emitEvent = (req, event, users, data) => {
+  const io = req.app.get("io");
+  const usersSocket = getSockets(users);
+  io.to(usersSocket).emit(event, data);
+};
+export { emitEvent, corsOption };
